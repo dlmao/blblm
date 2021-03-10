@@ -6,6 +6,15 @@
 \usage{
 lm_each_subsample(formula, data, n, B)
 }
+\arguments{
+\item{formula}{formula}
+
+\item{data}{split dataset}
+
+\item{n}{length of dataset}
+
+\item{B}{number of repetitions}
+}
 \description{
 compute the estimates
 }

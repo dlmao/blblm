@@ -1,0 +1,269 @@
+---
+title: "Using Blblm"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using Blblm}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(blblm)
+```
+
+Suppose we have a massive, high-dimensional dataset. Working on the whole dataset all at once is not  practical, and map reduce does not give us accurate enough results. Hence we turn to bag of little bootstraps (BLB).
+
+This package provides blb implementation for:
+
+*Linear Models
+
+*Random Forests
+
+This vignette provides documentation on how to use the provided functions and provides performance metrics on the package's multicore functions and C++ code.
+
+## Blblm
+
+The first blb implementation of a statistical model provided by this package is linear models.
+
+### Creating a Blblm Model
+
+To create a blblm object, you need a dataframe containing the variables you need to fit a linear model. For our example, we will use the R dataset trees. We would like to fit Height + Volume on Girth.
+
+```{r, echo = FALSE}
+head(trees)
+```
+
+There are a two additional arguments we have to consider here. We must decide the how many subsets to split our data into and how many bootstrap samples we want from each subset. Since trees is a small dataset, we can choose to split it into two and use 100 bootstrap samples.
+
+```{r}
+model <- blblm(Girth ~ Height + Volume, data = trees, m = 2, B = 100)
+```
+
+Here, model_blblm is a blblm object. A blblm object contains two things: a list of the bootstrapped models for all of the subsets and the formula of the model. Using this object, you can perform obtain many of the blb estimates associated with linear models using the provided class functions as described below.  
+
+### Blblm Object Functions
+
+There are many functions that can be called on a blblm object.
+
+#### print
+
+Calling print on a blblm object will diplay the formula associated with the blblm object.
+
+```{r}
+print(model)
+```
+
+#### sigma
+
+Calling sigma on a blblm object will obtain the blb estimate of sigma. 
+
+```{r}
+sigma(model)
+```
+
+Setting the confidence arguement to true will return a 95\% confidence interval for sigma. You can additionally specify the level of the confidence interval.
+
+```{r}
+sigma(model, confidence = TRUE, level = 0.95)
+```
+
+#### coef
+
+Calling coef on a blblm object will obtained the blb estimate of the regression coefficients, 
+
+```{r}
+coef(model)
+```
+
+
+#### confint
+
+Calling confint will return a 95\% confidence interval for our predictor variables. You can additionally specify the level of the confidence interval.
+
+```{r}
+confint(model, level = 0.95)
+```
+
+You can specify a specific variable using the parm argument.
+
+```{r}
+confint(model, parm = 'Volume', level = 0.95)
+```
+
+#### predict
+
+Calling predict on a blblm object will give us the prediction for the new dataset. 
+
+```{r}
+new_dat <- data.frame(65, 13)
+colnames(new_dat) <- c("Height", "Volume")
+predict(model, new_data = new_dat)
+```
+
+You can also call for a confidence interval.
+
+```{r}
+predict(model, new_data = new_dat, confidence = TRUE, level = 0.95)
+```
+
+
+### Performance Metrics For Blblm
+
+Since this package deals with big data, this package contains many features to help speed up computing.
+
+#### Multicore Processing using Furrr
+
+```{r, results = 'hide', message = FALSE, warnings = FALSE, echo = FALSE}
+a <- runif(5e4)
+b <- runif(5e4)
+c <- runif(5e4)
+dat <- data.frame(a, b, c)
+```
+
+Our package allows the use of multicore processing through the package furrr. Simply give the number of workers you want through the argument nthreads.
+
+```{r, eval = FALSE}
+blblm(c ~ b + a + a*b, data = dat, m = 10, B = 5000, nthreads = 8)
+```
+
+To see the improvements parallel computing brings, let us generate a fairly large dataset. Here, we generate a dataset with three variables, each with 1e5 observations. We can benchmark the performance of using a single core and 8 cores.
+
+```{r, cache = TRUE}
+bench::mark(
+  blblm(c ~ b + a + a*b, data = dat, m = 10, B = 5000, nthreads = 1),
+  blblm(c ~ b + a + a*b, data = dat, m = 10, B = 5000, nthreads = 8),
+  check = FALSE, 
+  memory = FALSE,
+  filter_gc = FALSE,
+  relative = FALSE
+)
+```
+
+As we can see, the multicore process improves computational speed by a large amount. 
+
+#### Weighted Least Squares using Rcpp Armadillo
+
+Additionally, to increase computational efficiency, lm.wfit is rewritten in Rcpp Armadillo as lmW and lm2 is written as an alternative to lm1 that calls lmW instead. The lmW code is based off RcppArmadillo's fastLm.R and fastLm.cpp. 
+
+The idea mathematically is to simply change the least squares normal equations from $X^tX\hat{\beta}=X^Ty$ to $X^tWX\hat{\beta}=X^TWy$, where $W$ is a diagonal matrix of our weights vector.
+
+To implement this in Rcpp Armadillo, since it is costly to convert our weights vector into matrix $W$, we make use of the /% operator (element-wise cube multiplication) and .each_col() function (repeat operation on each column). Since $y$ is a vector the fastest way to build $Wy$ using $w$\%$y$, where $w$ is the weights vector. $X^tWX$ has no vector, so we have to use the each_col function paired with the \% operator.
+
+#### Speed of lmW vs lm.fit
+
+We can benchmark the performance of lmW. Here, we generate another dataset of three variables each with length 1e4, and a vector of weights length 1e5. 
+
+```{r, results = 'hide', message = FALSE, warnings = FALSE, echo = FALSE}
+# create a dataset
+a <- runif(1e4)
+b <- runif(1e4)
+c <- runif(1e4)
+dat <- data.frame(a, b, c)
+
+# create 
+m <- model.frame(b~a + c + a*c, dat)
+X <- model.matrix(b~a + c + a*c, m)
+y <- model.response(m)
+
+# create weights
+w <- as.vector(rmultinom(1, 10000, rep(1, nrow(X))))
+```
+
+```{r}
+bench::mark(
+  lm.wfit(X, y, w),
+  blblm:::lmW(X, y, w),
+  check = FALSE, 
+  memory = FALSE,
+  relative = FALSE
+)
+```
+
+As we can see, lmW is significantly faster than lm.wfit. Since for blb we call this function many times, using lmW will save us a lot of time. 
+
+We can benchmark the whole model creating function to show the difference in efficiency between the two functions. Here lm2 denotes the version using lmW.
+
+```{r}
+bench::mark(
+  blblm:::lm1(X,y,10000),
+  blblm:::lm2(X,y,10000),
+  check = FALSE, 
+  memory = FALSE,
+  relative = FALSE
+)
+```
+
+It is apparent that lm2 is much faster.
+
+## Blbrf
+
+This package also contains a blb implementation of the Random Forest algorithm for classification.
+
+### Creating a Blbrf Object
+
+```{r, echo = FALSE}
+library(kernlab)  # for the data spam
+data(spam)
+```
+
+All that is needed to create a blbrf object is a classification dataset. The argument m specifies the number of subsets to divide the dataset into and the argument B specifies the number of bootstrap trees to use per subset.
+
+```{r}
+model <- blbrf(type ~ ., data = spam, m = 10, B = 500, nthreads = 1)
+```
+
+### Blbrf Object Functions
+
+#### print.blblrf
+
+Printing blbrf model prints the model relationship and classification levels.
+
+```{r}
+print(model)
+```
+
+#### predict.blbrf
+
+You can use a blbrf model to predict new data samples.
+
+```{r}
+new_dat <- spam[56,-58]
+predict(model, new_dat)
+```
+
+You can specify to return the probability of each class.
+
+```{r}
+predict(model, new_dat, type = "probability")
+```
+
+You can also specify to return a confidence interval. Random Forest confidence intervals use jackknife-after-bootstrap, so a sample size of 20 or greater is needed.
+
+```{r}
+new_dat <- spam[56:76,-58]
+predict(model, new_dat, type = "CI", level = 0.95)
+```
+
+### Performance Metrics for Blbrf
+
+Since we are using the package Ranger, which is mostly written in C, there is no need for us to write any parts in C. However, we can give the option for multicore processing.
+
+#### Multicore Processing for Blblrf
+
+Package Ranger has a built-in multicore processing function, that we can use to build our model.
+
+```{r}
+bench::mark(
+  blbrf(type ~ ., data = spam, m = 10, B = 5000, nthreads = 1),
+  blbrf(type ~ ., data = spam, m = 10, B = 5000, nthreads = 8),
+  check = FALSE, 
+  memory = FALSE,
+  filter_gc = FALSE,
+  relative = FALSE
+)
+```
+

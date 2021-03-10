@@ -1,4 +1,6 @@
 #' @import purrr
+#' @import furrr
+#' @import future
 #' @import stats
 #' @importFrom magrittr %>%
 #' @details
@@ -11,12 +13,40 @@
 utils::globalVariables(c("."))
 
 
+#' Bag of Little Bootstraps for fitting Linear Models
+#'
+#' Create a new factor from two existing factors, where the new factor's levels
+#' are the union of the levels of the input factors.
+#'
+#' @param formula An object of class "formula".
+#' @param data A data frame containing the variables of the model.
+#' @param m An integer denoting the number of splits
+#' @param B an integer denoting the number of bootstrap samples per split
+#' @param nthreads an integer denoting number of workers
+#'
+#' @return blblm
 #' @export
-blblm <- function(formula, data, m = 10, B = 5000) {
-  data_list <- split_data(data, m)
-  estimates <- map(
-    data_list,
-    ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B))
+#' @examples
+#' blblm(mpg ~ wt * hp, data = mtcars, m = 3, B = 10000, nthreads = 8)
+#' @export
+blblm <- function(formula, data, m = 10, B = 5000, nthreads = 1) {
+  data_list <- split_data(data, m) # split data into m sets
+  if (nthreads == 1) {
+    estimates <- map(
+      data_list,
+      ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B)
+    )
+  }
+  else {
+    plan(multiprocess, workers = nthreads, gc = TRUE)
+    options(future.rng.onMisuse = "ignore")
+    estimates <- future_map(
+      data_list,
+      ~ lm_each_subsample(formula = formula, data = ., n = nrow(data), B = B)
+    )
+    ## R CMD check: make sure any open connections are closed afterward
+    if (!inherits(plan(), "sequential")) plan(sequential)
+  }
   res <- list(estimates = estimates, formula = formula)
   class(res) <- "blblm"
   invisible(res)
@@ -24,6 +54,8 @@ blblm <- function(formula, data, m = 10, B = 5000) {
 
 
 #' split data into m parts of approximated equal sizes
+#' @param data dataset
+#' @param m number of splits
 split_data <- function(data, m) {
   idx <- sample.int(m, nrow(data), replace = TRUE)
   data %>% split(idx)
@@ -31,6 +63,10 @@ split_data <- function(data, m) {
 
 
 #' compute the estimates
+#' @param formula formula
+#' @param data split dataset
+#' @param n length of dataset
+#' @param B number of repetitions
 lm_each_subsample <- function(formula, data, n, B) {
   # drop the original closure of formula,
   # otherwise the formula will pick a wrong variable from the global scope.
@@ -38,11 +74,14 @@ lm_each_subsample <- function(formula, data, n, B) {
   m <- model.frame(formula, data)
   X <- model.matrix(formula, m)
   y <- model.response(m)
-  replicate(B, lm1(X, y, n), simplify = FALSE)
+  replicate(B, lm2(X, y, n), simplify = FALSE)
 }
 
 
 #' compute the regression estimates for a blb dataset
+#' @param X Least Squares Matrix
+#' @param y Least Squares target Matrix
+#' @param n length of dataset
 lm1 <- function(X, y, n) {
   freqs <- as.vector(rmultinom(1, n, rep(1, nrow(X))))
   fit <- lm.wfit(X, y, freqs)
@@ -50,13 +89,33 @@ lm1 <- function(X, y, n) {
 }
 
 
+#' Rcpp version of lm1
+#' @param X Least Squares Matrix
+#' @param y Least Squares target Matrix
+#' @param n length of dataset
+lm2 <- function(X, y, n) {
+  freqs <- as.vector(rmultinom(1, n, rep(1, nrow(X))))
+
+  fit <- lmW(X, y, freqs)
+  fit$coefficients <- as.vector(fit$coefficients)
+  fit$residuals <- as.vector(fit$residuals)
+  fit$weights <- as.vector(fit$weights)
+  fit$rank <- as.double(fit$rank)
+  names(fit$coefficients) <- colnames(X)
+
+  list(coef = blbcoef(fit), sigma = blbsigma(fit))
+}
+
+
 #' compute the coefficients from fit
+#' @param fit lm object
 blbcoef <- function(fit) {
   coef(fit)
 }
 
 
 #' compute sigma from fit
+#' @param fit lm object
 blbsigma <- function(fit) {
   p <- fit$rank
   e <- fit$residuals
@@ -65,6 +124,10 @@ blbsigma <- function(fit) {
 }
 
 
+#' print.blblm
+#'
+#'
+#' @param x blblm
 #' @export
 #' @method print blblm
 print.blblm <- function(x, ...) {
@@ -73,6 +136,12 @@ print.blblm <- function(x, ...) {
 }
 
 
+#' sigma.blblm
+#'
+#'
+#' @param object blblm
+#' @param confidence boolean return confidence interval or not
+#' @param level if confidence is TRUE level of confidence interval
 #' @export
 #' @method sigma blblm
 sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
@@ -89,6 +158,11 @@ sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
   }
 }
 
+
+#' coef.blblm
+#'
+#'
+#' @param object blblm
 #' @export
 #' @method coef blblm
 coef.blblm <- function(object, ...) {
@@ -97,6 +171,12 @@ coef.blblm <- function(object, ...) {
 }
 
 
+#' conflint.blblm
+#'
+#'
+#' @param object blblm
+#' @param parm string specific fit variable
+#' @param level double confidence interval level
 #' @export
 #' @method confint blblm
 confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
@@ -115,6 +195,13 @@ confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
   out
 }
 
+#' predict.blblm
+#'
+#'
+#' @param object blblm
+#' @param new_data dataframe of new data entries
+#' @param confidence boolean return confidence interval
+#' @param level double level of confidence interval
 #' @export
 #' @method predict blblm
 predict.blblm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
