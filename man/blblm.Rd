@@ -2,20 +2,20 @@
 % Please edit documentation in R/blblm.R
 \name{blblm}
 \alias{blblm}
-\title{Bind two factors}
+\title{Bag of Little Bootstraps for fitting Linear Models}
 \usage{
 blblm(formula, data, m = 10, B = 5000, nthreads = 1)
 }
 \arguments{
-\item{formula}{object of class "formula"}
+\item{formula}{An object of class "formula".}
 
-\item{data}{a dataframe}
+\item{data}{A data frame containing the variables of the model.}
 
-\item{m}{an integer}
+\item{m}{An integer denoting the number of splits}
 
-\item{B}{an integer}
+\item{B}{an integer denoting the number of bootstrap samples per split}
 
-\item{nthreads}{an integer}
+\item{nthreads}{an integer denoting number of workers}
 }
 \value{
 blblm
