@@ -3,6 +3,7 @@
 #' @import future
 #' @import stats
 #' @importFrom magrittr %>%
+#' @importFrom utils capture.output
 #' @details
 #' Linear Regression with Little Bag of Bootstraps
 "_PACKAGE"

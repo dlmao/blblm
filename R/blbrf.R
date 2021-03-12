@@ -4,6 +4,7 @@
 #' @import stats
 #' @import ranger
 #' @importFrom magrittr %>%
+#' @importFrom utils capture.output
 #' @details
 #' Linear Regression with Little Bag of Bootstraps
 "_PACKAGE"
@@ -53,7 +54,6 @@ blbrf = function(formula, data, m = 10, B = 500, nthreads = 1) {
 #' compute the estimates
 #' @param formula formula
 #' @param data split dataset
-#' @param n integer length of dataset
 #' @param B integer number of repetitions
 #' @param nthreads integer number of workers
 rf_each_subsample <- function(formula, data, B, nthreads) {
@@ -82,7 +82,7 @@ print.blbrf <- function(x, ...) {
 #'
 #' @param object blbrf
 #' @param new_data dataframe of new data entries
-#' @param confidence boolean return confidence interval
+#' @param type string type of return
 #' @param level double level of confidence interval
 #' @export
 #' @method predict blbrf

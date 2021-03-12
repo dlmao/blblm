@@ -1,4 +1,4 @@
-# blblm
+# blbmethods
 
 <!-- badges: start -->
 <!-- badges: end -->
@@ -6,7 +6,7 @@
 ## Examples
 
 ``` r
-library(blblm)
+library(blbmethods)
 fit <- blblm(mpg ~ wt * hp, data = mtcars, m = 3, B = 100)
 coef(fit)
 #> (Intercept)          wt          hp       wt:hp 

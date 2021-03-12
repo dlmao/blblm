@@ -1,8 +1,8 @@
 ---
-title: "Using Blblm"
+title: "Using Blbmethods"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Using Blblm}
+  %\VignetteIndexEntry{Using Blbmethods}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -12,7 +12,7 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
-library(blblm)
+library(blbmethods)
 ```
 
 Suppose we have a massive, high-dimensional dataset. Working on the whole dataset all at once is not  practical, and map reduce does not give us accurate enough results. Hence we turn to bag of little bootstraps (BLB).
@@ -132,7 +132,7 @@ blblm(c ~ b + a + a*b, data = dat, m = 10, B = 5000, nthreads = 8)
 
 To see the improvements parallel computing brings, let us generate a fairly large dataset. Here, we generate a dataset with three variables, each with 1e5 observations. We can benchmark the performance of using a single core and 8 cores.
 
-```{r, cache = TRUE}
+```{r}
 bench::mark(
   blblm(c ~ b + a + a*b, data = dat, m = 10, B = 5000, nthreads = 1),
   blblm(c ~ b + a + a*b, data = dat, m = 10, B = 5000, nthreads = 8),
@@ -176,7 +176,7 @@ w <- as.vector(rmultinom(1, 10000, rep(1, nrow(X))))
 ```{r}
 bench::mark(
   lm.wfit(X, y, w),
-  blblm:::lmW(X, y, w),
+  blbmethods:::lmW(X, y, w),
   check = FALSE, 
   memory = FALSE,
   relative = FALSE
@@ -189,8 +189,8 @@ We can benchmark the whole model creating function to show the difference in eff
 
 ```{r}
 bench::mark(
-  blblm:::lm1(X,y,10000),
-  blblm:::lm2(X,y,10000),
+  blbmethods:::lm1(X,y,10000),
+  blbmethods:::lm2(X,y,10000),
   check = FALSE, 
   memory = FALSE,
   relative = FALSE

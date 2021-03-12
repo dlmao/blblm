@@ -8,7 +8,7 @@ using namespace Rcpp;
 
 // lmW
 List lmW(const arma::mat& X, const arma::vec& y, const arma::vec& w);
-RcppExport SEXP _blblm_lmW(SEXP XSEXP, SEXP ySEXP, SEXP wSEXP) {
+RcppExport SEXP _blbmethods_lmW(SEXP XSEXP, SEXP ySEXP, SEXP wSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -21,11 +21,11 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_blblm_lmW", (DL_FUNC) &_blblm_lmW, 3},
+    {"_blbmethods_lmW", (DL_FUNC) &_blbmethods_lmW, 3},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_blblm(DllInfo *dll) {
+RcppExport void R_init_blbmethods(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

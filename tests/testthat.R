@@ -1,4 +1,4 @@
 library(testthat)
-library(blblm)
+library(blbmethods)
 
-test_check("blblm")
+test_check("blbmethods")

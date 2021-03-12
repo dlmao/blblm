@@ -1,5 +1,5 @@
 ## usethis namespace: start
-#' @useDynLib blblm, .registration = TRUE
+#' @useDynLib blbmethods, .registration = TRUE
 #' @importFrom Rcpp sourceCpp
 ## usethis namespace: end
 NULL

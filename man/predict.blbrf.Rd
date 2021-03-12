@@ -11,9 +11,9 @@
 
 \item{new_data}{dataframe of new data entries}
 
-\item{level}{double level of confidence interval}
+\item{type}{string type of return}
 
-\item{confidence}{boolean return confidence interval}
+\item{level}{double level of confidence interval}
 }
 \description{
 predict.blbrf

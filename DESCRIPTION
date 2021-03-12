@@ -1,4 +1,4 @@
-Package: blblm
+Package: blbmethods
 Type: Package
 Title: Implement Bag of Little Bootstraps for Linear Model
 Version: 0.1.0

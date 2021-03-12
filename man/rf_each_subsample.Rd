@@ -14,8 +14,6 @@ rf_each_subsample(formula, data, B, nthreads)
 \item{B}{integer number of repetitions}
 
 \item{nthreads}{integer number of workers}
-
-\item{n}{integer length of dataset}
 }
 \description{
 compute the estimates
