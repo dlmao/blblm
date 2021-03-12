@@ -5,7 +5,7 @@ test_that("factor levels of tree are correct", {
   expect_identical(model$levels, levels(iris$Species))
 })
 
-test_that("ensure predicted probs are the mean prob of all models", {
+test_that("ensure end probs are the mean prob of all models", {
   model <- blbrf(Species ~ ., data = iris, m = 2, B = 500, nthreads = 1)
   new_dat <- iris[1,-5]
   x1 = model$estimates$`1`
