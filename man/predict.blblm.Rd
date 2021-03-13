@@ -14,6 +14,8 @@
 \item{confidence}{boolean return confidence interval}
 
 \item{level}{double level of confidence interval}
+
+\item{...}{dots}
 }
 \description{
 predict.blblm

@@ -129,6 +129,7 @@ blbsigma <- function(fit) {
 #'
 #'
 #' @param x blblm
+#' @param ... dots
 #' @export
 #' @method print blblm
 print.blblm <- function(x, ...) {
@@ -143,6 +144,7 @@ print.blblm <- function(x, ...) {
 #' @param object blblm
 #' @param confidence boolean return confidence interval or not
 #' @param level if confidence is TRUE level of confidence interval
+#' @param ... dots
 #' @export
 #' @method sigma blblm
 sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
@@ -164,6 +166,7 @@ sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
 #'
 #'
 #' @param object blblm
+#' @param ... dots
 #' @export
 #' @method coef blblm
 coef.blblm <- function(object, ...) {
@@ -178,6 +181,7 @@ coef.blblm <- function(object, ...) {
 #' @param object blblm
 #' @param parm string specific fit variable
 #' @param level double confidence interval level
+#' @param ... dots
 #' @export
 #' @method confint blblm
 confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
@@ -203,6 +207,7 @@ confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
 #' @param new_data dataframe of new data entries
 #' @param confidence boolean return confidence interval
 #' @param level double level of confidence interval
+#' @param ... dots
 #' @export
 #' @method predict blblm
 predict.blblm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {

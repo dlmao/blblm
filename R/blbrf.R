@@ -68,6 +68,7 @@ rf_each_subsample <- function(formula, data, B, nthreads) {
 #'
 #'
 #' @param x blbrf
+#' @param ... dots
 #' @export
 #' @method print blbrf
 print.blbrf <- function(x, ...) {
@@ -84,6 +85,7 @@ print.blbrf <- function(x, ...) {
 #' @param new_data dataframe of new data entries
 #' @param type string type of return
 #' @param level double level of confidence interval
+#' @param ... dots
 #' @export
 #' @method predict blbrf
 predict.blbrf <- function(object, new_data, type = "prediction", level = 0.95, ...) {

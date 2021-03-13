@@ -8,6 +8,8 @@
 }
 \arguments{
 \item{x}{blblm}
+
+\item{...}{dots}
 }
 \description{
 print.blblm

@@ -8,6 +8,8 @@
 }
 \arguments{
 \item{x}{blbrf}
+
+\item{...}{dots}
 }
 \description{
 print.blbrf

@@ -12,6 +12,8 @@
 \item{confidence}{boolean return confidence interval or not}
 
 \item{level}{if confidence is TRUE level of confidence interval}
+
+\item{...}{dots}
 }
 \description{
 sigma.blblm

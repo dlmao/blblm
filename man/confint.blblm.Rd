@@ -12,6 +12,8 @@
 \item{parm}{string specific fit variable}
 
 \item{level}{double confidence interval level}
+
+\item{...}{dots}
 }
 \description{
 conflint.blblm

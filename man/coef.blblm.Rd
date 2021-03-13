@@ -8,6 +8,8 @@
 }
 \arguments{
 \item{object}{blblm}
+
+\item{...}{dots}
 }
 \description{
 coef.blblm

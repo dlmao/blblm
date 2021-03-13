@@ -14,6 +14,8 @@
 \item{type}{string type of return}
 
 \item{level}{double level of confidence interval}
+
+\item{...}{dots}
 }
 \description{
 predict.blbrf
