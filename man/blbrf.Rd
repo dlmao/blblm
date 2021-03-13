@@ -2,7 +2,7 @@
 % Please edit documentation in R/blbrf.R
 \name{blbrf}
 \alias{blbrf}
-\title{Bind two factors}
+\title{Bag of Little Boostrap for Random Forest}
 \usage{
 blbrf(formula, data, m = 10, B = 500, nthreads = 1)
 }
@@ -21,8 +21,8 @@ blbrf(formula, data, m = 10, B = 500, nthreads = 1)
 blbrf
 }
 \description{
-Create a new factor from two existing factors, where the new factor's levels
-are the union of the levels of the input factors.
+Implementation of the Bag of Little Bootstrap algorithm for Random Forest.
+Includes methods blb estimates for predictions. Based on the R Ranger package.
 }
 \examples{
 blbrf(mpg ~ wt * hp, data = mtcars, m = 3, B = 10000, nthreads = 8)

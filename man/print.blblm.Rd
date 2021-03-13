@@ -9,8 +9,8 @@
 \arguments{
 \item{x}{blblm}
 
-\item{...}{dots}
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
-print.blblm
+Prints formula of blblm model
 }

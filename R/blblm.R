@@ -16,8 +16,8 @@ utils::globalVariables(c("."))
 
 #' Bag of Little Bootstraps for fitting Linear Models
 #'
-#' Create a new factor from two existing factors, where the new factor's levels
-#' are the union of the levels of the input factors.
+#' Implementation of the Bag of Little Bootstrap algorithm for linear regression.
+#' Includes methods blb estimates for common regression statistics.
 #'
 #' @param formula An object of class "formula".
 #' @param data A data frame containing the variables of the model.
@@ -127,9 +127,10 @@ blbsigma <- function(fit) {
 
 #' print.blblm
 #'
+#' Prints formula of blblm model
 #'
 #' @param x blblm
-#' @param ... dots
+#' @param ... further arguments passed to or from other methods.
 #' @export
 #' @method print blblm
 print.blblm <- function(x, ...) {
@@ -140,11 +141,13 @@ print.blblm <- function(x, ...) {
 
 #' sigma.blblm
 #'
+#' Returns blb prediction of sigma of linear model.
+#' Can return a confidence interval instead.
 #'
 #' @param object blblm
 #' @param confidence boolean return confidence interval or not
 #' @param level if confidence is TRUE level of confidence interval
-#' @param ... dots
+#' @param ... further arguments passed to or from other methods.
 #' @export
 #' @method sigma blblm
 sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
@@ -164,9 +167,10 @@ sigma.blblm <- function(object, confidence = FALSE, level = 0.95, ...) {
 
 #' coef.blblm
 #'
+#' Returns blb coefficients of linear model
 #'
 #' @param object blblm
-#' @param ... dots
+#' @param ... further arguments passed to or from other methods.
 #' @export
 #' @method coef blblm
 coef.blblm <- function(object, ...) {
@@ -177,11 +181,12 @@ coef.blblm <- function(object, ...) {
 
 #' conflint.blblm
 #'
+#' blb confidence interval for Regression coefficients
 #'
 #' @param object blblm
 #' @param parm string specific fit variable
 #' @param level double confidence interval level
-#' @param ... dots
+#' @param ... further arguments passed to or from other methods.
 #' @export
 #' @method confint blblm
 confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
@@ -202,23 +207,39 @@ confint.blblm <- function(object, parm = NULL, level = 0.95, ...) {
 
 #' predict.blblm
 #'
+#' Predict with new observation. Can return prediction or confidence interval.
 #'
 #' @param object blblm
 #' @param new_data dataframe of new data entries
 #' @param confidence boolean return confidence interval
 #' @param level double level of confidence interval
-#' @param ... dots
+#' @param nthreads an integer denoting number of workers
+#' @param ... further arguments passed to or from other methods.
 #' @export
 #' @method predict blblm
-predict.blblm <- function(object, new_data, confidence = FALSE, level = 0.95, ...) {
+predict.blblm <- function(object, new_data, confidence = FALSE, level = 0.95, nthreads = 1, ...) {
   est <- object$estimates
   X <- model.matrix(reformulate(attr(terms(object$formula), "term.labels")), new_data)
-  if (confidence) {
-    map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
-      apply(1, mean_lwr_upr, level = level) %>%
-      t())
+  if (nthreads == 1) {
+    if (confidence) {
+      map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
+                 apply(1, mean_lwr_upr, level = level) %>%
+                 t())
+    } else {
+      map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
+    }
   } else {
-    map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
+    plan(multiprocess, workers = nthreads, gc = TRUE)
+    options(future.rng.onMisuse = "ignore")
+    if (confidence) {
+      map_future_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
+                 apply(1, mean_lwr_upr, level = level) %>%
+                 t())
+    } else {
+      map_future_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
+    }
+    ## R CMD check: make sure any open connections are closed afterward
+    if (!inherits(plan(), "sequential")) plan(sequential)
   }
 }
 
@@ -230,6 +251,10 @@ mean_lwr_upr <- function(x, level = 0.95) {
 
 map_mean <- function(.x, .f, ...) {
   (map(.x, .f, ...) %>% reduce(`+`)) / length(.x)
+}
+
+map_future_mean <- function(.x, .f, ...) {
+  (future_map(.x, .f, ...) %>% reduce(`+`)) / length(.x)
 }
 
 map_cbind <- function(.x, .f, ...) {

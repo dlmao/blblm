@@ -9,8 +9,8 @@
 \arguments{
 \item{x}{blbrf}
 
-\item{...}{dots}
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
-print.blbrf
+Prints the formula and level of the blbrf model
 }

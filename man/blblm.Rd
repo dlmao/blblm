@@ -21,8 +21,8 @@ blblm(formula, data, m = 10, B = 5000, nthreads = 1)
 blblm
 }
 \description{
-Create a new factor from two existing factors, where the new factor's levels
-are the union of the levels of the input factors.
+Implementation of the Bag of Little Bootstrap algorithm for linear regression.
+Includes methods blb estimates for common regression statistics.
 }
 \examples{
 blblm(mpg ~ wt * hp, data = mtcars, m = 3, B = 10000, nthreads = 8)

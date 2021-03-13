@@ -4,7 +4,7 @@
 \alias{predict.blblm}
 \title{predict.blblm}
 \usage{
-\method{predict}{blblm}(object, new_data, confidence = FALSE, level = 0.95, ...)
+\method{predict}{blblm}(object, new_data, confidence = FALSE, level = 0.95, nthreads = 1, ...)
 }
 \arguments{
 \item{object}{blblm}
@@ -15,8 +15,10 @@
 
 \item{level}{double level of confidence interval}
 
-\item{...}{dots}
+\item{nthreads}{an integer denoting number of workers}
+
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
-predict.blblm
+Predict with new observation. Can return prediction or confidence interval.
 }

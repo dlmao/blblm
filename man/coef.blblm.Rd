@@ -9,8 +9,8 @@
 \arguments{
 \item{object}{blblm}
 
-\item{...}{dots}
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
-coef.blblm
+Returns blb coefficients of linear model
 }

@@ -4,19 +4,22 @@
 \alias{predict.blbrf}
 \title{predict.blbrf}
 \usage{
-\method{predict}{blbrf}(object, new_data, type = "prediction", level = 0.95, ...)
+\method{predict}{blbrf}(object, new_data, type = "prediction", level = 0.95, nthreads = 1, ...)
 }
 \arguments{
 \item{object}{blbrf}
 
 \item{new_data}{dataframe of new data entries}
 
-\item{type}{string type of return}
+\item{type}{a character vector specifying type of return. Default prediction.}
 
 \item{level}{double level of confidence interval}
 
-\item{...}{dots}
+\item{nthreads}{integer number of workers}
+
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
-predict.blbrf
+Predicts with new observations. Return level of prediction, probability of
+all levels, or confidence interval.
 }

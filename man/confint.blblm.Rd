@@ -13,8 +13,8 @@
 
 \item{level}{double confidence interval level}
 
-\item{...}{dots}
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
-conflint.blblm
+blb confidence interval for Regression coefficients
 }

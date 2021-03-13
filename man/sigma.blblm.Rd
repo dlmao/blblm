@@ -13,8 +13,9 @@
 
 \item{level}{if confidence is TRUE level of confidence interval}
 
-\item{...}{dots}
+\item{...}{further arguments passed to or from other methods.}
 }
 \description{
-sigma.blblm
+Returns blb prediction of sigma of linear model.
+Can return a confidence interval instead.
 }

@@ -14,10 +14,10 @@
 utils::globalVariables(c("."))
 
 
-#' Bind two factors
+#' Bag of Little Boostrap for Random Forest
 #'
-#' Create a new factor from two existing factors, where the new factor's levels
-#' are the union of the levels of the input factors.
+#' Implementation of the Bag of Little Bootstrap algorithm for Random Forest.
+#' Includes methods blb estimates for predictions. Based on the R Ranger package.
 #'
 #' @param formula object of class "formula"
 #' @param data a dataframe
@@ -32,18 +32,11 @@ utils::globalVariables(c("."))
 #' @export
 blbrf = function(formula, data, m = 10, B = 500, nthreads = 1) {
   data_list <- split_data(data, m) # split data into m sets
-  if (nthreads == 1) {
-    estimates <- map(
-      data_list,
-      ~ rf_each_subsample(formula = formula, data = ., B = B, nthreads = 1)
-    )
-  }
-  else {
-    estimates <- map(
-      data_list,
-      ~ rf_each_subsample(formula = formula, data = ., B = B, nthreads = nthreads)
-    )
-  }
+
+  estimates <- map(
+    data_list,
+    ~ rf_each_subsample(formula = formula, data = ., B = B, nthreads = nthreads)
+  )
 
   res <- list(estimates = estimates, levels = estimates[[1]]$forest$levels, formula = formula)
   class(res) <- "blbrf"
@@ -66,9 +59,10 @@ rf_each_subsample <- function(formula, data, B, nthreads) {
 
 #' print.blbrf
 #'
+#' Prints the formula and level of the blbrf model
 #'
 #' @param x blbrf
-#' @param ... dots
+#' @param ... further arguments passed to or from other methods.
 #' @export
 #' @method print blbrf
 print.blbrf <- function(x, ...) {
@@ -80,25 +74,28 @@ print.blbrf <- function(x, ...) {
 
 #' predict.blbrf
 #'
+#' Predicts with new observations. Return level of prediction, probability of
+#' all levels, or confidence interval.
 #'
 #' @param object blbrf
 #' @param new_data dataframe of new data entries
-#' @param type string type of return
+#' @param type a character vector specifying type of return. Default prediction.
 #' @param level double level of confidence interval
-#' @param ... dots
+#' @param ... further arguments passed to or from other methods.
+#' @param nthreads integer number of workers
 #' @export
 #' @method predict blbrf
-predict.blbrf <- function(object, new_data, type = "prediction", level = 0.95, ...) {
+predict.blbrf <- function(object, new_data, type = "prediction", level = 0.95, nthreads = 1, ...) {
   est <- object$estimates
   if(type == "prediction") {
-    map_mean(est, ~ predict(., new_data, type = "response")$predictions) %>%
+    map_mean(est, ~ predict(., new_data, type = "response", num.threads = nthreads)$predictions) %>%
       {colnames(.)[max.col(.)]} %>% factor(levels = object$levels)
   } else if (type == "CI") {
-    pred = map_mean(est, ~ predict(., new_dat, type = "se")$predictions)
+    pred = map_mean(est, ~ predict(., new_dat, type = "se", num.threads = nthreads)$predictions)
     se = map_mean(est, ~ predict(., new_dat, type = "se")$se)
     alpha = 1 - level
     pred + c(-1, 1) * qnorm(1 - alpha / 2) * se
   } else if (type == "probability") {
-    map_mean(est, ~ predict(., new_data, type = "response")$predictions)
+    map_mean(est, ~ predict(., new_data, type = "response", num.threads = nthreads)$predictions)
   }
 }

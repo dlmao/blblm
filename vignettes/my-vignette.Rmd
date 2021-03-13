@@ -51,7 +51,7 @@ There are many functions that can be called on a blblm object.
 
 #### print
 
-Calling print on a blblm object will diplay the formula associated with the blblm object.
+Calling print on a blblm object will display the formula associated with the blblm object.
 
 ```{r}
 print(model)
@@ -65,7 +65,7 @@ Calling sigma on a blblm object will obtain the blb estimate of sigma.
 sigma(model)
 ```
 
-Setting the confidence arguement to true will return a 95\% confidence interval for sigma. You can additionally specify the level of the confidence interval.
+Setting the confidence argument to true will return a 95\% confidence interval for sigma. You can additionally specify the level of the confidence interval.
 
 ```{r}
 sigma(model, confidence = TRUE, level = 0.95)
@@ -110,6 +110,11 @@ You can also call for a confidence interval.
 predict(model, new_data = new_dat, confidence = TRUE, level = 0.95)
 ```
 
+Additionally, you can also use multicore processing for prediction. Specify the number of workers using the nthreads argument.
+
+```{r}
+predict(model, new_data = new_dat, nthreads = 1)
+```
 
 ### Performance Metrics For Blblm
 
@@ -118,9 +123,9 @@ Since this package deals with big data, this package contains many features to h
 #### Multicore Processing using Furrr
 
 ```{r, results = 'hide', message = FALSE, warnings = FALSE, echo = FALSE}
-a <- runif(5e4)
-b <- runif(5e4)
-c <- runif(5e4)
+a <- runif(2e4)
+b <- runif(2e4)
+c <- runif(2e4)
 dat <- data.frame(a, b, c)
 ```
 
@@ -130,12 +135,12 @@ Our package allows the use of multicore processing through the package furrr. Si
 blblm(c ~ b + a + a*b, data = dat, m = 10, B = 5000, nthreads = 8)
 ```
 
-To see the improvements parallel computing brings, let us generate a fairly large dataset. Here, we generate a dataset with three variables, each with 1e5 observations. We can benchmark the performance of using a single core and 8 cores.
+To see the improvements parallel computing brings, let us generate a fairly large dataset. Here, we generate a dataset with three variables, each with 2e4 observations. We can benchmark the performance of using a single core and 8 cores.
 
 ```{r}
 bench::mark(
-  blblm(c ~ b + a + a*b, data = dat, m = 10, B = 5000, nthreads = 1),
-  blblm(c ~ b + a + a*b, data = dat, m = 10, B = 5000, nthreads = 8),
+  blblm(c ~ b + a + a * b, data = dat, m = 10, B = 5000, nthreads = 1),
+  blblm(c ~ b + a + a * b, data = dat, m = 10, B = 5000, nthreads = 8),
   check = FALSE, 
   memory = FALSE,
   filter_gc = FALSE,
@@ -143,7 +148,55 @@ bench::mark(
 )
 ```
 
-As we can see, the multicore process improves computational speed by a large amount. 
+As we can see, for high amounts of data, the multicore process improves computational speed. 
+
+We can repeat this experiment for now length 4e4
+
+```{r, results = 'hide', message = FALSE, warnings = FALSE, echo = FALSE}
+a <- runif(4e4)
+b <- runif(4e4)
+c <- runif(4e4)
+dat <- data.frame(a, b, c)
+```
+
+```{r}
+bench::mark(
+  blblm(c ~ b + a + a * b, data = dat, m = 10, B = 5000, nthreads = 1),
+  blblm(c ~ b + a + a * b, data = dat, m = 10, B = 5000, nthreads = 8),
+  check = FALSE, 
+  memory = FALSE,
+  filter_gc = FALSE,
+  relative = FALSE
+)
+```
+
+Multicore processing again speeds up computational time by a lot.
+
+We can also use multicore processing for prediction as well.
+
+```{r, results = 'hide', message = FALSE, warnings = FALSE, echo = FALSE}
+a <- runif(4e4)
+b <- runif(4e4)
+c <- runif(4e4)
+dat <- data.frame(a, b, c)
+model <-  blblm(c ~ b + a + a * b, data = dat, m = 10, B = 5000, nthreads = 8)
+```
+
+```{r}
+a <- runif(200)
+b <- runif(200)
+new_dat <- data.frame(a, b)
+bench::mark(
+  predict(model, new_data = new_dat, nthreads = 1),
+  predict(model, new_data = new_dat, nthreads = 8),
+  check = FALSE, 
+  memory = FALSE,
+  filter_gc = FALSE,
+  relative = FALSE
+)
+```
+
+It does takes some time to create the cores, so only time efficient for a large group of predictions.
 
 #### Weighted Least Squares using Rcpp Armadillo
 
@@ -151,11 +204,11 @@ Additionally, to increase computational efficiency, lm.wfit is rewritten in Rcpp
 
 The idea mathematically is to simply change the least squares normal equations from $X^tX\hat{\beta}=X^Ty$ to $X^tWX\hat{\beta}=X^TWy$, where $W$ is a diagonal matrix of our weights vector.
 
-To implement this in Rcpp Armadillo, since it is costly to convert our weights vector into matrix $W$, we make use of the /% operator (element-wise cube multiplication) and .each_col() function (repeat operation on each column). Since $y$ is a vector the fastest way to build $Wy$ using $w$\%$y$, where $w$ is the weights vector. $X^tWX$ has no vector, so we have to use the each_col function paired with the \% operator.
+To implement this in Rcpp Armadillo, since it is costly to convert our weights vector into matrix $W$, we make use of the /% operator (element-wise cube multiplication) and .each_col() function (repeat operation on each column). Since $y$ is a vector the fastest way to build $Wy$ using $w\%y$, where $w$ is the weights vector. $X^tWX$ has no vector, so we have to use the each_col function paired with the \% operator to make $X^tW$. 
 
 #### Speed of lmW vs lm.fit
 
-We can benchmark the performance of lmW. Here, we generate another dataset of three variables each with length 1e4, and a vector of weights length 1e5. 
+We can benchmark the performance of lmW. Here, we generate another dataset of three variables each with length 1e4, and a vector of weights length 1e4. 
 
 ```{r, results = 'hide', message = FALSE, warnings = FALSE, echo = FALSE}
 # create a dataset
@@ -165,12 +218,12 @@ c <- runif(1e4)
 dat <- data.frame(a, b, c)
 
 # create 
-m <- model.frame(b~a + c + a*c, dat)
-X <- model.matrix(b~a + c + a*c, m)
+m <- model.frame(b ~ a + c + a * c, dat)
+X <- model.matrix(b ~ a + c + a * c, m)
 y <- model.response(m)
 
 # create weights
-w <- as.vector(rmultinom(1, 10000, rep(1, nrow(X))))
+w <- as.vector(rmultinom(1, 1e4, rep(1, nrow(X))))
 ```
 
 ```{r}
@@ -189,8 +242,8 @@ We can benchmark the whole model creating function to show the difference in eff
 
 ```{r}
 bench::mark(
-  blbmethods:::lm1(X,y,10000),
-  blbmethods:::lm2(X,y,10000),
+  blbmethods:::lm1(X,y,1e4),
+  blbmethods:::lm2(X,y,1e4),
   check = FALSE, 
   memory = FALSE,
   relative = FALSE
@@ -198,6 +251,48 @@ bench::mark(
 ```
 
 It is apparent that lm2 is much faster.
+
+We can try both again for length 1e5.
+
+```{r, results = 'hide', message = FALSE, warnings = FALSE, echo = FALSE}
+# create a dataset
+a <- runif(1e5)
+b <- runif(1e5)
+c <- runif(1e5)
+dat <- data.frame(a, b, c)
+
+# create 
+m <- model.frame(b ~ a + c + a * c, dat)
+X <- model.matrix(b ~ a + c + a * c, m)
+y <- model.response(m)
+
+# create weights
+w <- as.vector(rmultinom(1, 1e5, rep(1, nrow(X))))
+```
+
+```{r}
+bench::mark(
+  lm.wfit(X, y, w),
+  blbmethods:::lmW(X, y, w),
+  check = FALSE, 
+  memory = FALSE,
+  relative = FALSE
+)
+```
+
+Again, we also benchmark lm1 and lm2.
+
+```{r}
+bench::mark(
+  blbmethods:::lm1(X,y,1e5),
+  blbmethods:::lm2(X,y,1e5),
+  check = FALSE, 
+  memory = FALSE,
+  relative = FALSE
+)
+```
+
+As we can see, our Rcpp Armadillo function lmW becomes even faster relatively.
 
 ## Blbrf
 
@@ -248,6 +343,14 @@ new_dat <- spam[56:76,-58]
 predict(model, new_dat, type = "CI", level = 0.95)
 ```
 
+Finally, there is multicore processing available for predictions. You can specify the number of cores using the nthreads argument.
+
+```{r}
+new_dat <- spam[56,-58]
+predict(model, new_dat, type = "CI", level = 0.95, nthreads = 1)
+```
+
+
 ### Performance Metrics for Blbrf
 
 Since we are using the package Ranger, which is mostly written in C, there is no need for us to write any parts in C. However, we can give the option for multicore processing.
@@ -267,3 +370,37 @@ bench::mark(
 )
 ```
 
+We can also use multicore processing for predictions. First, lets create a model with 5000 trees for each split.
+
+```{r}
+model <- blbrf(type ~ ., data = spam, m = 10, B = 5000, nthreads = 8)
+new_dat <- spam[56,-58]
+```
+
+```{r}
+bench::mark(
+  predict(model, new_dat, type = "prediction", level = 0.95, nthreads = 1),
+  predict(model, new_dat, type = "prediction", level = 0.95, nthreads = 8),
+  check = FALSE, 
+  memory = FALSE,
+  filter_gc = FALSE,
+  relative = FALSE
+)
+```
+
+With just one prediction, we are slightly faster. We can try again for many predictions.
+
+```{r}
+new_dat <- spam[101:800,-58]
+
+bench::mark(
+  predict(model, new_dat, type = "prediction", level = 0.95, nthreads = 1),
+  predict(model, new_dat, type = "prediction", level = 0.95, nthreads = 8),
+  check = FALSE, 
+  memory = FALSE,
+  filter_gc = FALSE,
+  relative = FALSE
+)
+```
+
+As we can see for 700 predictions, multicore processing with 8 cores is much faster.
