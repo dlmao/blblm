@@ -30,7 +30,7 @@ utils::globalVariables(c("."))
 #' @examples
 #' blbrf(mpg ~ wt * hp, data = mtcars, m = 3, B = 10000, nthreads = 8)
 #' @export
-blbrf = function(formula, data, m = 10, B = 500, nthreads = 1) {
+blbrf <- function(formula, data, m = 10, B = 500, nthreads = 1) {
   data_list <- split_data(data, m) # split data into m sets
 
   estimates <- map(
@@ -87,13 +87,16 @@ print.blbrf <- function(x, ...) {
 #' @method predict blbrf
 predict.blbrf <- function(object, new_data, type = "prediction", level = 0.95, nthreads = 1, ...) {
   est <- object$estimates
-  if(type == "prediction") {
+  if (type == "prediction") {
     map_mean(est, ~ predict(., new_data, type = "response", num.threads = nthreads)$predictions) %>%
-      {colnames(.)[max.col(.)]} %>% factor(levels = object$levels)
+      {
+        colnames(.)[max.col(.)]
+      } %>%
+      factor(levels = object$levels)
   } else if (type == "CI") {
-    pred = map_mean(est, ~ predict(., new_dat, type = "se", num.threads = nthreads)$predictions)
-    se = map_mean(est, ~ predict(., new_dat, type = "se")$se)
-    alpha = 1 - level
+    pred <- map_mean(est, ~ predict(., new_dat, type = "se", num.threads = nthreads)$predictions)
+    se <- map_mean(est, ~ predict(., new_dat, type = "se")$se)
+    alpha <- 1 - level
     pred + c(-1, 1) * qnorm(1 - alpha / 2) * se
   } else if (type == "probability") {
     map_mean(est, ~ predict(., new_data, type = "response", num.threads = nthreads)$predictions)

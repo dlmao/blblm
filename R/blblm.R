@@ -223,8 +223,8 @@ predict.blblm <- function(object, new_data, confidence = FALSE, level = 0.95, nt
   if (nthreads == 1) {
     if (confidence) {
       map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
-                 apply(1, mean_lwr_upr, level = level) %>%
-                 t())
+        apply(1, mean_lwr_upr, level = level) %>%
+        t())
     } else {
       map_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
     }
@@ -233,8 +233,8 @@ predict.blblm <- function(object, new_data, confidence = FALSE, level = 0.95, nt
     options(future.rng.onMisuse = "ignore")
     if (confidence) {
       map_future_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>%
-                 apply(1, mean_lwr_upr, level = level) %>%
-                 t())
+        apply(1, mean_lwr_upr, level = level) %>%
+        t())
     } else {
       map_future_mean(est, ~ map_cbind(., ~ X %*% .$coef) %>% rowMeans())
     }
