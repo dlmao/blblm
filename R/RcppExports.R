@@ -8,5 +8,6 @@
 #' @param w numeric vector
 #' @return list
 lmW <- function(X, y, w) {
-  .Call(`_blbmethods_lmW`, X, y, w)
+    .Call(`_blbmethods_lmW`, X, y, w)
 }
+
