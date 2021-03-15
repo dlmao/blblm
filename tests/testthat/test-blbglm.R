@@ -16,7 +16,7 @@ test_that("ensure prob of each subset is done correctly", {
   p1 <- 1 / (1 + exp(-X %*% est[[1]]$coef))
   p2 <- 1 / (1 + exp(-X %*% est[[2]]$coef))
   a <- as.numeric((p1 + p2) / 2)
-  b <- predict(model, new_data)
+  b <- predict(model, new_data, type = "probability")
   names(b) <- NULL
   expect_equal(a, b)
 })
@@ -30,7 +30,7 @@ test_that("ensure prob is reduced correctly", {
   p1 <- 1 / (1 + exp(-X %*% est1[[1]]$coef))
   p2 <- 1 / (1 + exp(-X %*% est2[[1]]$coef))
   a <- as.numeric((p1 + p2) / 2)
-  b <- predict(model, new_data)
+  b <- predict(model, new_data, type = "probability")
   names(b) <- NULL
   expect_equal(a, b)
 })

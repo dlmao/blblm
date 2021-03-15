@@ -4,14 +4,14 @@
 \alias{predict.blbglm}
 \title{predict.blbglm}
 \usage{
-\method{predict}{blbglm}(object, new_data, confidence = FALSE, level = 0.95, nthreads = 1, ...)
+\method{predict}{blbglm}(object, new_data, type = "prediction", level = 0.95, nthreads = 1, ...)
 }
 \arguments{
 \item{object}{blbglm}
 
 \item{new_data}{dataframe of new data entries}
 
-\item{confidence}{boolean return confidence interval}
+\item{type}{a character vector specifying type of return. Default prediction.}
 
 \item{level}{double level of confidence interval}
 
