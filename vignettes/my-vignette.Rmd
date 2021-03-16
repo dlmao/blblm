@@ -19,15 +19,17 @@ Suppose we have a massive, high-dimensional dataset. Working on the whole datase
 
 This package provides blb implementation for:
 
-*Linear Models
+* Linear Models
 
-*Random Forests
+* Random Forests
 
-This vignette provides documentation on how to use the provided functions and provides performance metrics on the package's multicore functions and C++ code.
+* Logistic Regression
+
+This vignette provides information on how the blb algorithm is implemented for each of the models, documentation on how to use the provided functions, and provides performance metrics on the package's multicore functions and C++ code.
 
 ## Blblm
 
-The first blb implementation of a statistical model provided by this package is linear models.
+The first blb implementation of a statistical model provided by this package is linear models. The idea here is to divide a regression dataset into m parts and from each part, create B bootstrap models. We find estimates by reducing our models and confidence intervals by using bootstrap percentile confidence intervals then reducing.
 
 ### Creating a Blblm Model
 
@@ -59,13 +61,13 @@ print(model)
 
 #### sigma
 
-Calling sigma on a blblm object will obtain the blb estimate of sigma. 
+Calling sigma on a blblm object will obtain the blb estimate of sigma.
 
 ```{r}
 sigma(model)
 ```
 
-Setting the confidence argument to true will return a 95\% confidence interval for sigma. You can additionally specify the level of the confidence interval.
+Setting the confidence argument to true will return a 95\% confidence interval for sigma. You can additionally specify the level of the confidence interval. Confidence intervals found with mean of bootstrap percentile confidence intervals.
 
 ```{r}
 sigma(model, confidence = TRUE, level = 0.95)
@@ -82,7 +84,7 @@ coef(model)
 
 #### confint
 
-Calling confint will return a 95\% confidence interval for our predictor variables. You can additionally specify the level of the confidence interval.
+Calling confint will return a 95\% confidence interval for our predictor variables. You can additionally specify the level of the confidence interval. Confidence intervals found with mean of bootstrap percentile confidence intervals.
 
 ```{r}
 confint(model, level = 0.95)
@@ -99,12 +101,11 @@ confint(model, parm = 'Volume', level = 0.95)
 Calling predict on a blblm object will give us the prediction for the new dataset. 
 
 ```{r}
-new_dat <- data.frame(65, 13)
-colnames(new_dat) <- c("Height", "Volume")
+new_dat <- trees[2:4, -1]
 predict(model, new_data = new_dat)
 ```
 
-You can also call for a confidence interval.
+You can also call for a confidence interval. Confidence intervals found with mean of bootstrap percentile confidence intervals.
 
 ```{r}
 predict(model, new_data = new_dat, confidence = TRUE, level = 0.95)
@@ -123,9 +124,9 @@ Since this package deals with big data, this package contains many features to h
 #### Multicore Processing using Furrr
 
 ```{r, results = 'hide', message = FALSE, warnings = FALSE, echo = FALSE}
-a <- runif(2e4)
-b <- runif(2e4)
-c <- runif(2e4)
+a <- runif(3e4)
+b <- runif(3e4)
+c <- runif(3e4)
 dat <- data.frame(a, b, c)
 ```
 
@@ -135,7 +136,7 @@ Our package allows the use of multicore processing through the package furrr. Si
 blblm(c ~ b + a + a*b, data = dat, m = 10, B = 5000, nthreads = 8)
 ```
 
-To see the improvements parallel computing brings, let us generate a fairly large dataset. Here, we generate a dataset with three variables, each with 2e4 observations. We can benchmark the performance of using a single core and 8 cores.
+To see the improvements parallel computing brings, let us generate a fairly large dataset. Here, we generate a dataset with three variables, each with 3e4 observations. We can benchmark the performance of spliting ten times with 5,000 bootstrao samples each using a single core and 8 cores.
 
 ```{r}
 bench::mark(
@@ -196,7 +197,7 @@ bench::mark(
 )
 ```
 
-It does takes some time to create the cores, so only time efficient for a large group of predictions.
+It does takes some time to create the cores, so using multiple cores is only time efficient for a large group of predictions.
 
 #### Weighted Least Squares using Rcpp Armadillo
 
@@ -294,9 +295,10 @@ bench::mark(
 
 As we can see, our Rcpp Armadillo function lmW becomes even faster relatively.
 
+
 ## Blbrf
 
-This package also contains a blb implementation of the Random Forest algorithm for classification.
+This package also contains a blb implementation of the Random Forest algorithm for classification. Since Random Forests are already a bootstrap algorithm, we divide a classification dataset into m portions and create a Random Forest model for each portion with B trees. Note however that since the Random Forest Algorithm does random sampling of predictor variables, it is not reliable to use bootstrap percentile confidence intervals. Instead, we use jackknife-after-bootstrap to do so.
 
 ### Creating a Blbrf Object
 
@@ -323,11 +325,11 @@ print(model)
 
 #### predict.blbrf
 
-You can use a blbrf model to predict new data samples.
+You can use a blbrf model to predict new data samples. Here, the prediction is based off of the average of the probabilities of each subset.
 
 ```{r}
-new_dat <- spam[56,-58]
-predict(model, new_dat)
+new_dat <- spam[56:58,-58]
+predict(model, new_dat, type = "prediction")
 ```
 
 You can specify to return the probability of each class.
@@ -336,7 +338,7 @@ You can specify to return the probability of each class.
 predict(model, new_dat, type = "probability")
 ```
 
-You can also specify to return a confidence interval. Random Forest confidence intervals use jackknife-after-bootstrap, so a sample size of 20 or greater is needed.
+You can also specify to return a confidence interval. Random Forest confidence intervals use jackknife-after-bootstrap, not bootstrap percentile confidence intervals, so a sample size of 20 or greater is needed to calibrate the standard error.
 
 ```{r}
 new_dat <- spam[56:76,-58]
@@ -347,7 +349,7 @@ Finally, there is multicore processing available for predictions. You can specif
 
 ```{r}
 new_dat <- spam[56,-58]
-predict(model, new_dat, type = "CI", level = 0.95, nthreads = 1)
+predict(model, new_dat, type = "prediction", nthreads = 1)
 ```
 
 
@@ -355,7 +357,7 @@ predict(model, new_dat, type = "CI", level = 0.95, nthreads = 1)
 
 Since we are using the package Ranger, which is mostly written in C, there is no need for us to write any parts in C. However, we can give the option for multicore processing.
 
-#### Multicore Processing for Blblrf
+#### Multicore Processing for Blbrf
 
 Package Ranger has a built-in multicore processing function, that we can use to build our model.
 
@@ -404,3 +406,140 @@ bench::mark(
 ```
 
 As we can see for 700 predictions, multicore processing with 8 cores is much faster.
+
+## Blbglm
+
+The final method provided by this function is binary logistic regression. The idea here is we take a binary classification dataset and divide it into m parts and create B bootstrapped logistic regression models. We find estimates by reducing our models and confidence intervals by using bootstrap percentile confidence intervals then reducing.
+
+### Creating a Blbglm Object
+
+We will use the same spam dataset from Blbrf. However, we will only fit 3 variables to avoid the curse of dimensionality problem from using linear classifiers such as logistic regression. Again, m denotes the number of splits, B the number of bootstrap samples per split, and nthreads the number of workers used in parallelization. 
+
+```{r}
+model <- blbglm(type ~ make + address + all, data = spam, m = 2, B = 500, nthreads = 1)
+```
+
+
+### Blbglm Object Functions
+
+There are many functions that can be called on a blblm object.
+
+#### print
+
+Print prints the formula and levels of the blbglm object.
+
+```{r}
+print(model)
+```
+
+#### Coef
+
+You can obtain the coefficients of the model. Note in the case of logistic regression, the coefficients are represented as $log{\frac{p}{1-p}}=\hat{\beta_0}+\hat{\beta_1}X_1+,...,\hat{\beta}_nX_n$, where $p=P(Y=1|X)$. The coefficients can be interpreted as if $\hat{\beta}=1$, when $X$ increases by 1, the probability that $Y=1$ increases by a factor of 10.
+
+```{r}
+coef(model)
+```
+
+
+#### Confint
+
+You can also obtain the confidence interval for the coefficients of the model. Confidence intervals found with mean of bootstrap percentile confidence intervals.
+
+
+```{r}
+confint(model, level = 0.95)
+```
+
+A specific predictor variable can also be specified.
+
+```{r}
+confint(model, parm = "make", level = 0.95)
+```
+
+
+#### Prediction
+
+You can predict using new observations.
+
+```{r}
+new_dat <- spam[41:44,-58]
+predict(model, new_dat)
+```
+
+You can specify to return the probabilities. Note here the probabilities returned is given by $p=\frac{1}{1+e^{-\hat{\beta_0}+\hat{\beta_1}X_1+,...,\hat{\beta}_nX_n}}$, and is classified as class $1$ when $p>0.5$ and class $2$ otherwise.
+
+```{r}
+predict(model, new_dat, type = "probability")
+```
+
+
+You can also return a confidence interval and bootstrap percentile. Confidence intervals found with mean of bootstrap percentile confidence intervals.
+
+```{r}
+predict(model, new_dat, type = "CI", level = 0.95)
+```
+
+Finally, you can specify using multicore processing using the nthreads argument.
+
+```{r}
+predict(model, new_dat, type = "probability", nthreads = 1)
+```
+
+
+### Performance Metrics for Blbglm
+
+#### Multicore Processing for Blbglm
+
+Again, multicore processing is offered through the package furrr. Simply specify the number of workers using the nthreads argument
+
+```{r, eval = FALSE}
+blbglm(type ~ make + address + all, data = spam, m = 2, B = 5000, nthreads = 8)
+```
+
+We can check the performance using the spam dataset, which has 4,601 rows. We'll compare the performance of using 8 cores vs 1 core when dividing the dataset in half and getting 5,000 bootstrap samples.
+
+```{r}
+bench::mark(
+  blbglm(type ~ make + address + all, data = spam, m = 2, B = 5000, nthreads = 1),
+  blbglm(type ~ make + address + all, data = spam, m = 2, B = 5000, nthreads = 8),
+  check = FALSE, 
+  memory = FALSE,
+  filter_gc = FALSE,
+  relative = FALSE
+)
+```
+
+As we can see, using 8 cores speeds up performance by a lot. We can try again doubling up the number of splits.
+
+```{r}
+bench::mark(
+  blbglm(type ~ make + address + all, data = spam, m = 4, B = 5000, nthreads = 1),
+  blbglm(type ~ make + address + all, data = spam, m = 4, B = 5000, nthreads = 8),
+  check = FALSE, 
+  memory = FALSE,
+  filter_gc = FALSE,
+  relative = FALSE
+)
+```
+
+As we can see, the performance of 8 cores is even better.
+
+We can also use multicore processing for predictions
+
+```{r}
+model <- blbglm(type ~ make + address + all, data = spam, m = 2, B = 5000, nthreads = 8)
+```
+```{r}
+new_dat <- spam[1000:1500,-58]
+bench::mark(
+  predict(model, new_dat, nthreads = 1),
+  predict(model, new_dat, nthreads = 8),
+  check = FALSE, 
+  memory = FALSE,
+  filter_gc = FALSE,
+  relative = FALSE
+)
+
+```
+
+It does take some time to create the cores, so this method is only efficient for large sample sizes.
