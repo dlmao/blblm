@@ -1,11 +1,11 @@
 Package: blbmethods
 Type: Package
-Title: Implement Bag of Little Bootstraps for Linear Model
+Title: Bag of Little Bootstraps for Various Models
 Version: 0.1.0
 Authors@R:
     person("David", "Mao", email = "dlmao@ucdavis.edu", role = c("aut", "cre"))
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: Implements Bag of Little Boostrap Algorithm for Linear Regression,
+    Random Forests, and Logistic Regression.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
