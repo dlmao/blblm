@@ -69,6 +69,7 @@ glm_each_subsample <- function(formula, data, n, B) {
   replicate(B, glm1(X, y, n), simplify = FALSE)
 }
 
+
 #' compute the regression estimates for a blb dataset
 #' @param X Least Squares Matrix
 #' @param y Least Squares target Matrix
@@ -153,11 +154,13 @@ predict.blbglm <- function(object, new_data, type = "prediction", level = 0.95, 
   if (nthreads == 1) {
     if (type == "CI") {
       map_mean(est, ~ map_cbind(., ~ 1 / (1 + exp(-X %*% .$coef))) %>%
-                 apply(1, mean_lwr_upr, level = level) %>%
-                 t())
+        apply(1, mean_lwr_upr, level = level) %>%
+        t())
     } else if (type == "prediction") {
       map_mean(est, ~ map_cbind(., ~ 1 / (1 + exp(-X %*% .$coef))) %>% rowMeans()) %>%
-        {ifelse(. > 0.5, object$levels[1], object$levels[2])} %>%
+        {
+          ifelse(. > 0.5, object$levels[1], object$levels[2])
+        } %>%
         factor(levels = object$levels)
     } else if (type == "probability") {
       map_mean(est, ~ map_cbind(., ~ 1 / (1 + exp(-X %*% .$coef))) %>% rowMeans())
@@ -167,11 +170,13 @@ predict.blbglm <- function(object, new_data, type = "prediction", level = 0.95, 
     options(future.rng.onMisuse = "ignore")
     if (type == "CI") {
       map_future_mean(est, ~ map_cbind(., ~ 1 / (1 + exp(-X %*% .$coef))) %>%
-                        apply(1, mean_lwr_upr, level = level) %>%
-                        t())
-    } else if (type == "prediction"){
+        apply(1, mean_lwr_upr, level = level) %>%
+        t())
+    } else if (type == "prediction") {
       map_future_mean(est, ~ map_cbind(., ~ 1 / (1 + exp(-X %*% .$coef))) %>% rowMeans()) %>%
-        {ifelse(. > 0.5, object$levels[1], object$levels[2])} %>%
+        {
+          ifelse(. > 0.5, object$levels[1], object$levels[2])
+        } %>%
         factor(levels = object$levels)
     } else if (type == "probability") {
       map_future_mean(est, ~ map_cbind(., ~ 1 / (1 + exp(-X %*% .$coef))) %>% rowMeans())
@@ -180,5 +185,3 @@ predict.blbglm <- function(object, new_data, type = "prediction", level = 0.95, 
     if (!inherits(plan(), "sequential")) plan(sequential)
   }
 }
-
-

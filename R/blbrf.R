@@ -89,7 +89,9 @@ predict.blbrf <- function(object, new_data, type = "prediction", level = 0.95, n
   est <- object$estimates
   if (type == "prediction") {
     map_mean(est, ~ predict(., new_data, type = "response", num.threads = nthreads)$predictions) %>%
-      {colnames(.)[max.col(.)]} %>%
+      {
+        colnames(.)[max.col(.)]
+      } %>%
       factor(levels = object$levels)
   } else if (type == "CI") {
     pred <- map_mean(est, ~ predict(., new_dat, type = "se", num.threads = nthreads)$predictions)
