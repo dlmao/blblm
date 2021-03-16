@@ -2,6 +2,7 @@
 #' @import furrr
 #' @import future
 #' @import stats
+#' @import ranger
 #' @importFrom magrittr %>%
 #' @importFrom utils capture.output
 #' @details
