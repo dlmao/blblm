@@ -86,8 +86,8 @@ predict.blbrf <- function(object, new_data, type = "prediction", level = 0.95, n
     pred <- map_mean(est, ~ predict(., new_dat, type = "se", num.threads = nthreads)$predictions)
     se <- map_mean(est, ~ predict(., new_dat, type = "se")$se)
     alpha <- 1 - level
-    x = 1:ncol(pred) %>% map(function(x) {
-      df <- pred[,x] + matrix(rep(c(-1, 1), nrow(pred)), ncol = 2, byrow = TRUE) * se[,x]
+    x <- 1:ncol(pred) %>% map(function(x) {
+      df <- pred[, x] + matrix(rep(c(-1, 1), nrow(pred)), ncol = 2, byrow = TRUE) * se[, x]
       colnames(df) <- c(alpha / 2, 1 - alpha / 2)
       df
     })
